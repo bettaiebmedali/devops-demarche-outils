@@ -24,7 +24,7 @@ L'objectif est de répondre rapidement, sans trop réfléchir.
 
 ## 🚨 Question 1 — Vendredi 17h30
 
-Le formateur demande :
+on demande :
 
 > « Votre application vient de tomber en production un vendredi à 17h30. Vous faites quoi ? »
 
@@ -40,23 +40,13 @@ Le formateur demande :
 
 > « Pas de panique, j'ai un pipeline et un rollback. »
 
-### Animation
 
-Demander aux participants :
-
-> **« A, B ou C ? Répondez tous dans le chat ! »**
-
-Puis choisir 1 ou 2 participants :
-
-> « Pourquoi tu as choisi cette réponse ? »
-
-Garder les échanges courts et humoristiques.
 
 ---
 
 ## 🐳 Question 2 — « Chez moi ça marche »
 
-Le formateur annonce :
+on annonce :
 
 > « Le développeur vous donne une application et vous dit :  
 > **"Chez moi ça fonctionne parfaitement."** »
@@ -75,23 +65,7 @@ Vous répondez quoi ?
 
 > « Docker. »
 
-Demander :
 
-> **« Votez dans le chat : A, B ou C ! »**
-
-### Relances possibles
-
-Si quelqu'un répond **A** :
-
-> « Excellent… on va donc découvrir ensemble ce qu'est un rollback ! 😂 »
-
-Si quelqu'un répond **B** :
-
-> « Et si le développeur refuse de donner sa machine ? 😄 »
-
-Si quelqu'un répond **C** :
-
-> « Très bien… mais qui va écrire le Dockerfile ? 😈 »
 
 ---
 
@@ -117,13 +91,7 @@ Le formateur annonce :
 
 > Une machine à café
 
-Demander :
 
-> **« A, B, C ou D ? Votez dans le chat ! »**
-
-Si quelqu'un choisit **D**, répondre :
-
-> « Très bon choix. Mais est-ce que la machine à café est haute disponibilité ? 😂 »
 
 ---
 
