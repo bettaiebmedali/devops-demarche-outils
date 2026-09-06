@@ -2,19 +2,18 @@
 
 ## Objectifs
 
-Dans ce TP, nous allons utiliser **Vagrant avec Docker comme provider** afin de créer et gérer des environnements de développement.
+Dans ce TP, nous allons utiliser **Vagrant avec Docker comme provider** pour créer et gérer un environnement de développement.
 
 À la fin du TP, vous serez capable de :
 
-- Initialiser un projet Vagrant.
-- Configurer Vagrant avec Docker comme provider.
-- Utiliser une image Ubuntu.
-- Démarrer et arrêter un environnement.
-- Se connecter avec `vagrant ssh`.
-- Configurer le hostname.
-- Configurer les ports.
+- Créer un projet Vagrant.
+- Configurer Docker comme provider Vagrant.
+- Créer une image personnalisée avec un `Dockerfile`.
+- Configurer SSH pour utiliser `vagrant ssh`.
+- Démarrer et arrêter un environnement Vagrant.
 - Utiliser le provisioning.
-- Utiliser un dossier partagé.
+- Utiliser les dossiers partagés.
+- Configurer les ports.
 - Gérer plusieurs machines avec Vagrant.
 - Maîtriser le cycle de vie d'un environnement Vagrant.
 
@@ -26,6 +25,12 @@ Vérifier que Vagrant est installé :
 
 ```bash
 vagrant --version
+```
+
+Vérifier que Docker est disponible :
+
+```bash
+docker --version
 ```
 
 ---
@@ -51,17 +56,78 @@ Cette commande crée le fichier :
 Vagrantfile
 ```
 
+Le projet aura finalement cette structure :
+
+```text
+tp-vagrant-docker/
+├── Dockerfile
+└── Vagrantfile
+```
+
 ---
 
-# 3. Configurer Vagrant avec Docker
+# 3. Utiliser Docker comme provider
+
+Vagrant peut utiliser différents providers.
+
+Dans ce TP, nous utilisons Docker :
+
+```ruby
+config.vm.provider "docker" do |docker|
+```
+
+Notre `Vagrantfile` va utiliser une image construite localement à partir d'un `Dockerfile`.
+
+---
+
+# 4. Créer le Dockerfile
+
+Créer un fichier :
+
+```text
+Dockerfile
+```
+
+Contenu :
+
+```dockerfile
+FROM ubuntu:latest
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    openssh-server \
+    sudo && \
+    useradd -m -s /bin/bash vagrant && \
+    echo "vagrant:vagrant" | chpasswd && \
+    usermod -aG sudo vagrant && \
+    echo "vagrant ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vagrant && \
+    mkdir -p /run/sshd && \
+    rm -rf /var/lib/apt/lists/*
+
+CMD ["/usr/sbin/sshd", "-D", "-e"]
+```
+
+Ce fichier permet à Vagrant d'utiliser une image Ubuntu contenant :
+
+- Un serveur SSH.
+- Un utilisateur `vagrant`.
+- Un mot de passe `vagrant`.
+- Les permissions `sudo`.
+- Le programme `/usr/sbin/sshd`.
+
+---
+
+# 5. Configurer le Vagrantfile
 
 Modifier le fichier `Vagrantfile` :
 
 ```ruby
 Vagrant.configure("2") do |config|
 
+  config.vm.hostname = "mission-mars"
+
   config.vm.provider "docker" do |docker|
-    docker.image = "ubuntu:latest"
+    docker.build_dir = "."
     docker.has_ssh = true
     docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
   end
@@ -72,45 +138,67 @@ Vagrant.configure("2") do |config|
 end
 ```
 
-Le provider utilisé est Docker :
+## Configuration utilisée
+
+### Provider
 
 ```ruby
 config.vm.provider "docker" do |docker|
 ```
 
-L'image utilisée est définie avec :
+Docker est utilisé comme provider.
+
+### Construction de l'image
 
 ```ruby
-docker.image = "ubuntu:latest"
+docker.build_dir = "."
 ```
 
-L'accès SSH est activé avec :
+Vagrant utilise le `Dockerfile` présent dans le répertoire courant.
+
+### SSH
 
 ```ruby
 docker.has_ssh = true
 ```
 
-La commande exécutée au démarrage est :
+Permet à Vagrant d'utiliser SSH.
+
+### Commande de démarrage
 
 ```ruby
 docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
 ```
 
----
+Le serveur SSH est lancé au démarrage.
 
-# 4. Démarrer l'environnement
+### Utilisateur SSH
 
-Lancer l'environnement :
-
-```bash
-vagrant up
+```ruby
+config.ssh.username = "vagrant"
+config.ssh.password = "vagrant"
 ```
 
-Ou préciser le provider :
+Vagrant utilise l'utilisateur `vagrant`.
+
+---
+
+# 6. Démarrer l'environnement
+
+Lancer :
 
 ```bash
 vagrant up --provider=docker
 ```
+
+Vagrant va :
+
+1. Lire le `Vagrantfile`.
+2. Utiliser le `Dockerfile`.
+3. Construire l'image.
+4. Créer l'environnement.
+5. Démarrer le serveur SSH.
+6. Configurer la connexion SSH.
 
 Vérifier l'état :
 
@@ -120,7 +208,7 @@ vagrant status
 
 ---
 
-# 5. Se connecter à l'environnement
+# 7. Se connecter avec SSH
 
 Utiliser :
 
@@ -134,13 +222,25 @@ Tester :
 whoami
 ```
 
-Puis :
+Résultat attendu :
+
+```text
+vagrant
+```
+
+Vérifier le hostname :
 
 ```bash
 hostname
 ```
 
-Pour quitter :
+Résultat attendu :
+
+```text
+mission-mars
+```
+
+Quitter :
 
 ```bash
 exit
@@ -148,17 +248,75 @@ exit
 
 ---
 
-# 6. Modifier le hostname
+# 8. Démonstration — Cycle de vie
 
-Modifier le `Vagrantfile` :
+## Démarrer
+
+```bash
+vagrant up
+```
+
+## Vérifier l'état
+
+```bash
+vagrant status
+```
+
+## Se connecter
+
+```bash
+vagrant ssh
+```
+
+## Arrêter
+
+```bash
+vagrant halt
+```
+
+## Redémarrer
+
+```bash
+vagrant up
+```
+
+## Recharger la configuration
+
+```bash
+vagrant reload
+```
+
+## Détruire l'environnement
+
+```bash
+vagrant destroy
+```
+
+Sans confirmation :
+
+```bash
+vagrant destroy -f
+```
+
+---
+
+# 9. Démonstration — Modifier le hostname
+
+Modifier :
+
+```ruby
+config.vm.hostname = "serveur-vagrant"
+```
+
+Exemple :
 
 ```ruby
 Vagrant.configure("2") do |config|
 
-  config.vm.hostname = "vagrant-server"
+  config.vm.hostname = "serveur-vagrant"
 
   config.vm.provider "docker" do |docker|
-    docker.image = "ubuntu:latest"
+    docker.build_dir = "."
     docker.has_ssh = true
     docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
   end
@@ -169,13 +327,13 @@ Vagrant.configure("2") do |config|
 end
 ```
 
-Appliquer la modification :
+Appliquer :
 
 ```bash
 vagrant reload
 ```
 
-Se connecter :
+Puis :
 
 ```bash
 vagrant ssh
@@ -187,17 +345,17 @@ Vérifier :
 hostname
 ```
 
-Résultat attendu :
+Résultat :
 
 ```text
-vagrant-server
+serveur-vagrant
 ```
 
 ---
 
-# 7. Provisioning
+# 10. Démonstration — Provisioning
 
-Vagrant permet d'exécuter automatiquement des commandes lors de la configuration de l'environnement.
+Le provisioning permet d'exécuter automatiquement des commandes avec Vagrant.
 
 Ajouter dans le `Vagrantfile` :
 
@@ -208,7 +366,31 @@ config.vm.provision "shell", inline: <<-SHELL
 SHELL
 ```
 
-Exécuter le provisioning :
+Exemple complet :
+
+```ruby
+Vagrant.configure("2") do |config|
+
+  config.vm.hostname = "mission-mars"
+
+  config.vm.provider "docker" do |docker|
+    docker.build_dir = "."
+    docker.has_ssh = true
+    docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
+  end
+
+  config.ssh.username = "vagrant"
+  config.ssh.password = "vagrant"
+
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "Bienvenue dans Vagrant"
+    touch /home/vagrant/test.txt
+  SHELL
+
+end
+```
+
+Exécuter :
 
 ```bash
 vagrant provision
@@ -234,9 +416,9 @@ test.txt
 
 ---
 
-# 8. Provisioning avec un script
+# 11. Démonstration — Provisioning avec un script
 
-Créer le fichier :
+Créer :
 
 ```text
 bootstrap.sh
@@ -247,7 +429,7 @@ Contenu :
 ```bash
 #!/bin/bash
 
-echo "Configuration de la machine Vagrant"
+echo "Configuration de Mission Mars"
 
 mkdir -p /home/vagrant/project
 
@@ -257,10 +439,19 @@ echo "Projet Vagrant" > /home/vagrant/project/info.txt
 Modifier le `Vagrantfile` :
 
 ```ruby
+config.vm.provision "shell",
+  path: "bootstrap.sh"
+```
+
+Exemple :
+
+```ruby
 Vagrant.configure("2") do |config|
 
+  config.vm.hostname = "mission-mars"
+
   config.vm.provider "docker" do |docker|
-    docker.image = "ubuntu:latest"
+    docker.build_dir = "."
     docker.has_ssh = true
     docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
   end
@@ -292,9 +483,15 @@ Vérifier :
 cat /home/vagrant/project/info.txt
 ```
 
+Résultat :
+
+```text
+Projet Vagrant
+```
+
 ---
 
-# 9. Dossier partagé
+# 12. Démonstration — Dossier partagé
 
 Le dossier du projet est accessible dans l'environnement via :
 
@@ -340,7 +537,7 @@ Hello Vagrant
 
 ---
 
-# 10. Port forwarding
+# 13. Démonstration — Port forwarding
 
 Vagrant permet de rediriger un port.
 
@@ -352,33 +549,51 @@ config.vm.network "forwarded_port",
   host: 8080
 ```
 
-La correspondance est :
+Exemple :
 
-```text
-Machine hôte
-    |
-    | localhost:8080
-    v
-Machine Vagrant
-    |
-    | port 80
-    v
-Service
+```ruby
+Vagrant.configure("2") do |config|
+
+  config.vm.hostname = "mission-mars"
+
+  config.vm.provider "docker" do |docker|
+    docker.build_dir = "."
+    docker.has_ssh = true
+    docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
+  end
+
+  config.vm.network "forwarded_port",
+    guest: 80,
+    host: 8080
+
+  config.ssh.username = "vagrant"
+  config.ssh.password = "vagrant"
+
+end
 ```
 
-Appliquer la configuration :
+Appliquer :
 
 ```bash
 vagrant reload
 ```
 
-Le service disponible sur le port `80` de l'environnement sera accessible via le port `8080` de la machine hôte.
+La correspondance est :
+
+```text
+Machine hôte
+localhost:8080
+       |
+       v
+Machine Vagrant
+port 80
+```
 
 ---
 
-# 11. Réseau privé
+# 14. Démonstration — Réseau privé
 
-Il est également possible de configurer une adresse IP privée :
+Vagrant permet également de configurer un réseau privé :
 
 ```ruby
 config.vm.network "private_network",
@@ -390,8 +605,10 @@ Exemple :
 ```ruby
 Vagrant.configure("2") do |config|
 
+  config.vm.hostname = "mission-mars"
+
   config.vm.provider "docker" do |docker|
-    docker.image = "ubuntu:latest"
+    docker.build_dir = "."
     docker.has_ssh = true
     docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
   end
@@ -410,7 +627,7 @@ vagrant reload
 
 ---
 
-# 12. Plusieurs machines
+# 15. Démonstration — Plusieurs machines
 
 Vagrant permet de gérer plusieurs environnements dans un seul `Vagrantfile`.
 
@@ -424,10 +641,13 @@ Vagrant.configure("2") do |config|
     web.vm.hostname = "web-server"
 
     web.vm.provider "docker" do |docker|
-      docker.image = "ubuntu:latest"
+      docker.build_dir = "."
       docker.has_ssh = true
       docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
     end
+
+    web.ssh.username = "vagrant"
+    web.ssh.password = "vagrant"
 
   end
 
@@ -436,35 +656,38 @@ Vagrant.configure("2") do |config|
     db.vm.hostname = "database-server"
 
     db.vm.provider "docker" do |docker|
-      docker.image = "ubuntu:latest"
+      docker.build_dir = "."
       docker.has_ssh = true
       docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
     end
+
+    db.ssh.username = "vagrant"
+    db.ssh.password = "vagrant"
 
   end
 
 end
 ```
 
-Démarrer les deux machines :
+Démarrer les deux :
 
 ```bash
 vagrant up
 ```
 
-Afficher leur état :
+Afficher l'état :
 
 ```bash
 vagrant status
 ```
 
-Se connecter à `web` :
+Se connecter au serveur web :
 
 ```bash
 vagrant ssh web
 ```
 
-Se connecter à `db` :
+Se connecter à la base :
 
 ```bash
 vagrant ssh db
@@ -484,7 +707,7 @@ vagrant halt web
 
 ---
 
-# 13. Cycle de vie Vagrant
+# 16. Commandes essentielles
 
 ## Initialiser
 
@@ -522,7 +745,7 @@ vagrant ssh
 vagrant reload
 ```
 
-## Exécuter le provisioning
+## Provisionner
 
 ```bash
 vagrant provision
@@ -560,41 +783,13 @@ vagrant destroy -f
 
 ---
 
-# 14. Commandes utiles
-
-Afficher toutes les machines Vagrant :
-
-```bash
-vagrant global-status
-```
-
-Afficher les boxes disponibles :
-
-```bash
-vagrant box list
-```
-
-Afficher la version de Vagrant :
-
-```bash
-vagrant --version
-```
-
-Afficher l'aide :
-
-```bash
-vagrant --help
-```
-
----
-
-# 15. Démonstration complète
+# 17. Démonstration complète
 
 Créer le projet :
 
 ```bash
-mkdir demo-vagrant
-cd demo-vagrant
+mkdir demo-vagrant-docker
+cd demo-vagrant-docker
 ```
 
 Initialiser :
@@ -603,7 +798,26 @@ Initialiser :
 vagrant init
 ```
 
-Configurer le `Vagrantfile` :
+Créer le `Dockerfile` :
+
+```dockerfile
+FROM ubuntu:latest
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    openssh-server \
+    sudo && \
+    useradd -m -s /bin/bash vagrant && \
+    echo "vagrant:vagrant" | chpasswd && \
+    usermod -aG sudo vagrant && \
+    echo "vagrant ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vagrant && \
+    mkdir -p /run/sshd && \
+    rm -rf /var/lib/apt/lists/*
+
+CMD ["/usr/sbin/sshd", "-D", "-e"]
+```
+
+Créer le `Vagrantfile` :
 
 ```ruby
 Vagrant.configure("2") do |config|
@@ -611,7 +825,7 @@ Vagrant.configure("2") do |config|
   config.vm.hostname = "mission-mars"
 
   config.vm.provider "docker" do |docker|
-    docker.image = "ubuntu:latest"
+    docker.build_dir = "."
     docker.has_ssh = true
     docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
   end
@@ -674,7 +888,7 @@ Redémarrer :
 vagrant up
 ```
 
-Supprimer l'environnement :
+Supprimer :
 
 ```bash
 vagrant destroy -f
@@ -682,7 +896,7 @@ vagrant destroy -f
 
 ---
 
-# 16. Exercice final
+# 18. Exercice final
 
 Créer un projet :
 
@@ -691,22 +905,40 @@ mkdir tp-final-vagrant
 cd tp-final-vagrant
 ```
 
-Initialiser Vagrant :
+Initialiser :
 
 ```bash
 vagrant init
 ```
 
-Créer un `Vagrantfile` qui doit :
+Créer un `Dockerfile` permettant d'avoir :
+
+- Ubuntu.
+- OpenSSH.
+- L'utilisateur `vagrant`.
+- Le mot de passe `vagrant`.
+- `sudo`.
+
+Créer un `Vagrantfile` permettant de :
 
 1. Utiliser Docker comme provider.
-2. Utiliser une image Ubuntu.
+2. Construire l'image à partir du `Dockerfile`.
 3. Activer SSH.
 4. Définir le hostname `mission-mars`.
-5. Configurer un port forwarding `8080 -> 80`.
-6. Créer le fichier `/home/vagrant/mission.txt` avec le provisioning.
+5. Configurer le port `8080` vers le port `80`.
+6. Créer `/home/vagrant/mission.txt` avec le provisioning.
 
-Lancer :
+Le provider doit utiliser :
+
+```ruby
+config.vm.provider "docker" do |docker|
+  docker.build_dir = "."
+  docker.has_ssh = true
+  docker.cmd = ["/usr/sbin/sshd", "-D", "-e"]
+end
+```
+
+Démarrer :
 
 ```bash
 vagrant up --provider=docker
@@ -751,75 +983,116 @@ vagrant destroy -f
 
 ---
 
-# 17. Résumé
+# 19. Structure finale du projet
 
-Les commandes principales à retenir :
+À la fin du TP, le projet peut avoir cette structure :
+
+```text
+tp-vagrant-docker/
+├── Dockerfile
+├── Vagrantfile
+└── bootstrap.sh
+```
+
+---
+
+# 20. Résumé
+
+Le principe de Vagrant avec Docker dans ce TP est :
+
+```text
+             Vagrant
+                |
+                v
+           Vagrantfile
+                |
+                v
+         Docker Provider
+                |
+                v
+           Dockerfile
+                |
+                v
+       Environnement Vagrant
+                |
+                v
+           vagrant ssh
+```
+
+Les commandes essentielles :
 
 ```bash
 vagrant init
-vagrant up
 vagrant up --provider=docker
 vagrant status
 vagrant ssh
 vagrant reload
 vagrant provision
 vagrant halt
-vagrant suspend
-vagrant resume
 vagrant destroy
 ```
 
-Les principales configurations du `Vagrantfile` :
+Les principales configurations :
 
 ```ruby
 config.vm.provider "docker"
+docker.build_dir = "."
+docker.has_ssh = true
+docker.cmd
 config.vm.hostname
-config.vm.network
 config.vm.provision
+config.vm.network
 config.ssh.username
 config.ssh.password
 ```
 
-Workflow principal :
+Le workflow principal :
 
 ```text
-vagrant init
-      |
-      v
-Vagrantfile
-      |
-      v
-vagrant up
-      |
-      v
-Environnement Vagrant
-      |
-      v
-vagrant ssh
-      |
-      v
-Travail
-      |
-      v
-vagrant halt
-      |
-      v
-vagrant destroy
+1. vagrant init
+        ↓
+2. Créer Dockerfile
+        ↓
+3. Configurer Vagrantfile
+        ↓
+4. vagrant up
+        ↓
+5. vagrant ssh
+        ↓
+6. Travailler
+        ↓
+7. vagrant halt
+        ↓
+8. vagrant destroy
 ```
 
 # Conclusion
 
-Avec **Vagrant + Docker Provider**, le `Vagrantfile` permet de décrire l'environnement et les commandes Vagrant permettent de gérer simplement son cycle de vie.
+Vagrant permet de gérer facilement un environnement de développement en décrivant sa configuration dans un `Vagrantfile`.
 
-Les commandes essentielles sont :
+Dans ce TP, Docker est utilisé uniquement comme **provider de Vagrant**.
+
+L'image utilisée par l'environnement est construite à partir d'un `Dockerfile`, puis Vagrant gère son cycle de vie :
 
 ```bash
-vagrant init
-vagrant up --provider=docker
-vagrant status
+vagrant up
 vagrant ssh
-vagrant reload
-vagrant provision
 vagrant halt
 vagrant destroy
+```
+
+Le point essentiel est de séparer les rôles :
+
+```text
+Vagrantfile
+    ↓
+Configuration de l'environnement
+
+Dockerfile
+    ↓
+Image utilisée par l'environnement
+
+Vagrant
+    ↓
+Gestion du cycle de vie
 ```
