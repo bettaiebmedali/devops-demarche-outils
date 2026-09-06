@@ -1,0 +1,12 @@
+FROM ubuntu:latest
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    ansible \
+    sudo
+RUN useradd -m -s /bin/bash ansible_user && echo "ansible_user:password" | chpasswd \
+&& usermod -aG sudo ansible_user
+RUN mkdir -p /var/run/sshd
+RUN echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config
+RUN sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config
+EXPOSE 22
+CMD ["/usr/sbin/sshd", "-D"]
