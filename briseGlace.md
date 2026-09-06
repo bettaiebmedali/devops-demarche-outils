@@ -71,7 +71,7 @@ Vous répondez quoi ?
 
 ## 🌙 Question 3 — 3h du matin
 
-Le formateur annonce :
+on annonce :
 
 > « Il est 3h du matin. La production est en panne. Vous devez intervenir. Qui voulez-vous avoir avec vous ? »
 
@@ -97,7 +97,7 @@ Le formateur annonce :
 
 ## 🎤 Question finale — Un seul mot
 
-Le formateur demande :
+on demande :
 
 > **« En un seul mot, décrivez votre relation avec la production. »**
 
