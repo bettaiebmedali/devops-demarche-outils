@@ -115,3 +115,17 @@ Ticket
 Rollback
 Incendie
 Surprise
+```
+
+# « Présentez-vous en 60 secondes en répondant à ces 5 questions : »
+```text
+
+👤 Qui êtes-vous ? — rôle, équipe, expérience
+💻 Vous développez, administrez, testez… quoi ?
+🛠️ Quels outils DevOps avez-vous déjà utilisés ?
+Git, GitLab, Docker, Kubernetes, Jenkins/GitLab CI, Ansible, Terraform, Cloud…
+🚀 Qu'est-ce que vous avez déjà automatisé ?
+Même quelque chose de très simple.
+🎯 Qu'est-ce que vous aimeriez savoir faire à la fin de cette formation ?
+
+```
