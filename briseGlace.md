@@ -128,4 +128,8 @@ Git, GitLab, Docker, Kubernetes, Jenkins/GitLab CI, Ansible, Terraform, Cloud…
 Même quelque chose de très simple.
 🎯 Qu'est-ce que vous aimeriez savoir faire à la fin de cette formation ?
 
+
+Et surtout :
+
+« Quel est LE sujet que vous ne voulez surtout pas quitter cette formation sans comprendre ? »
 ```
